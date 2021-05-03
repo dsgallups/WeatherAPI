@@ -1,18 +1,44 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
+
+
+#define OFFSET 48 //for numbers
 void drawMenu();
 
+/*
+  the problem is that inputs are typically buffered, so it's very hard to get a keypres
+
+*/
 int main() {
+  int frameCount = 0;
+  int running = 1;
+  char no[5];
+  while (running) {
     drawMenu();
-    return 0;
-    
+    char* commands = "Since all command line inputs are buffered on Unix systems, please issue commands and press enter to update the screen.\n"
+    "To execute the current screen's configuration, just press enter:\n";
+    char c;
+
+    while (c = getchar() != EOF && c != 10) {
+      printf("frame = %d\n", frameCount++);
+      if (c >= OFFSET && c <= OFFSET + 9) {
+        strcat(no, &c);
+      }
+    } 
+    printf("no = %s\n", no);
+  }
+
+
+
+  return 0;
 }
 
 
 void drawMenu() {
 
-    system("clear");
+    
     char* menu = 
     "#####################################################################################\n"
     "#                                                                                   #\n"
@@ -25,65 +51,27 @@ void drawMenu() {
     "#                                                                                   #\n"
     "#                                                                                   #\n"
     "#                                  Enter Zipcode:                                   #\n"
-    "#                     |                                       |                     #\n"
-    "#                     |                                       |                     #\n"
-    "#                     |                                       |                     #\n"
-    "#                     |                                       |                     #\n"
+    "#                                      _____                                        #\n"
     "#                                                                                   #\n"
     "#                                                                                   #\n"
+    "#                              Options (* is selected):                             #\n"
     "#                                                                                   #\n"
-    "#                                                                                   #\n"
-    "#                                                                                   #\n"
+    "#                                  7 day forecast*                                  #\n"
+    "#                                  1 day forecast                                   #\n"
+    "#                                       exit                                        #\n"
     "#                                                                                   #\n"
     "#####################################################################################\n";
     printf("%s", menu);
 
     /*
-     |                                       |
-         __    ___   ___    ___     _  
-        /. |  (__ ) / _ \  / _ \   / ) 
-       (_  _)  / /  \_  / ( (_) ) / _ \
-         (_)  (_/    (_/   \___/  \___/
+    while (1) {
+      //char e = getchar();
+      printf("%d\n", getchar());
+    }*/
 
-  ___
- / _ \ 
-( (_) )
- \___/ 
-  __   
- /  )  
-  )(   
- (__)  
- ___   
-(__ \  
- / _/  
-(____) 
- ___   
-(__ )  
- (_ \  
-(___/  
-  __   
- /. |  
-(_  _) 
-  (_)  
- ___   
-| __)  
-|__ \  
-(___/  
-  _    
- / )   
-/ _ \  
-\___/  
- ___   
-(__ )  
- / /   
-(_/    
- ___   
-( _ )  
-/ _ \  
-\___/  
- ___   
-/ _ \  
-\_  /  
- (_/   
-    */
+    //s = 115
+    //w = 119
+    //0 = 48
+    //4 = 52...
+    //9 = 
 }
