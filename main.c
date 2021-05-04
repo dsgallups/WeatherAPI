@@ -36,24 +36,23 @@ struct memory {
   size_t size;
 };
 
-#define OFFSET 48 //for numbers
 void drawMenu();
 void drawData();
 char* fetchAPI();
 char* spaceMaker();
 size_t writeCallback();
-/*
-  the problem is that inputs are typically buffered, so it's very hard to get a keypres
 
-*/
 int main() {
   int running = 1;
     
       
-  //store the user's action
+  //store the user's action in option
   int option = 0;
+
+  //holder for our zip code
   char zip[] =  "_____";
   while (running) {
+    system("clear");
     drawMenu(zip, option);
 
     printf("For help, type \"help\".\n> ");
@@ -71,6 +70,8 @@ int main() {
       "go - Executes the displayed configurations.\n"
       "exit - exits the program.\n";
       printf("%s", help);
+      
+      //janky but I'd prefer the user to not see the menu drawn again.
       goto COM;
     }
     if (strstr(command, "exit")) {
@@ -91,19 +92,19 @@ int main() {
 
     if (strstr(command, "go")) {
       char* result = fetchAPI(zip, option);
-
+      system("clear");
       drawData(result, option);
+
+      //if a user types anything, it will exit. I know I said type 'exit' to exit, but this is more user friendly.
       char dump[60];
       scanf("%s", dump);
     }
 
-    //if user hits enter with no input
-    if (strlen(command) == 0)
-    printf("%s\n%lu\n", command, strlen(command));
   }
   return 0;
 }
 
+//Returns white space. Helpful for building the menu.
 char* spaceMaker(int length) {
   char *str = malloc(length + 1);
   memset(str, ' ', length);
@@ -138,12 +139,6 @@ void drawData(char* data, int option) {
     "#                                       Exit*                                       #\n"
     "#                                                                                   #\n"
     "#####################################################################################\n";
-
-    "# Today, May 2    | High: 75f  | Low: 63f  | Weather: Thunderstorms                 #\n" len 86
-       Today, May 2    len 17
-        High: 75f  len 12
-         Low: 63f  len 11
-       Weather: Thunderstorms                 len 40   
     */
     struct json_object *parsed_json;
     parsed_json = json_tokener_parse(data);
@@ -153,6 +148,8 @@ void drawData(char* data, int option) {
     //daily[i].temp.min
     //daily[i].temp.max
     //daily[i].weather[0].main
+
+    //All these variables are necessary to decrease the scope of each JSON value.
     struct json_object *day;
     struct json_object *temp;
     struct json_object *min;
@@ -176,6 +173,8 @@ void drawData(char* data, int option) {
       const char* minVal = json_object_get_string(min);
       const char* maxVal = json_object_get_string(max);
       const char* wVal = json_object_get_string(weatherval);
+
+
       char line[200];
       strcpy(line, "# ");
       char dayval[10];
@@ -335,6 +334,8 @@ char* fetchAPI(char* zip, int option) {
   /*
     To use the openweather api, we have to convert our zip code into a lat long coordinate system.
     We can do this via google's api
+
+    Basically, we use two api's to fetch the weather..
   */
   CURL *curl = curl_easy_init();
 
@@ -407,7 +408,7 @@ char* fetchAPI(char* zip, int option) {
     return 0;
   }
 
-
+  //Copy/paste of previous code to get JSON out of buffer
   struct memory chunk2;
 
   chunk2.memory = NULL;
@@ -415,28 +416,17 @@ char* fetchAPI(char* zip, int option) {
   curl_easy_setopt(curl2, CURLOPT_URL, url);
   curl_easy_setopt(curl2, CURLOPT_WRITEFUNCTION, writeCallback);
   curl_easy_setopt(curl2, CURLOPT_WRITEDATA, &chunk2);
-  //printf("chunk: %s\n", chunk);
 
   CURLcode result2 = curl_easy_perform(curl2);
   if (result2 != CURLE_OK) {
     fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result2));
 
-  } else {
-    //printf("bytes: %d\n", (int) chunk2.size);
-    //printf("data: %s", chunk2.memory);
   }
-
   curl_easy_cleanup(curl2);
   return chunk2.memory;
+  //potential memory leak?
   free(chunk.memory);
   free(chunk2.memory);
-  //set options
-  /*
-
-  */
-
-
-
 }
 
 void drawMenu(char* zip, int option) {
