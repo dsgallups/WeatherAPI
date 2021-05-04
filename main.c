@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <curl/curl.h>
+#include <json-c/json.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,15 +14,28 @@
   Then, reload vscode
 
 
+  As for json-c, json-c is found here:
+  https://github.com/json-c/json-c
+
+  Follow instructions labeled "Building on Unix with git, gcc, and cmake"
+  alternatively, just use vcpkg and install via command:
+  vcpkg install json-c
+  
+
   #######
   To compile, do
-  gcc main.c -lcurl
+  gcc main.c -lcurl -ljson-c
 */
+
+struct memory {
+  char *memory;
+  size_t size;
+};
 
 #define OFFSET 48 //for numbers
 void drawMenu();
 char* fetchAPI();
-
+size_t writeCallback();
 /*
   the problem is that inputs are typically buffered, so it's very hard to get a keypres
 
@@ -43,7 +57,7 @@ int main() {
   int option = 0;
   char zip[] =  "_____";
   while (running) {
-    printf("test\n");
+    printf("top of running while\n");
     drawMenu(zip, option);
 
     printf("For help, type \"help\".\n> ");
@@ -94,6 +108,29 @@ int main() {
   return 0;
 }
 
+
+size_t writeCallback(char *contents, size_t size, size_t nmemb, void *userp) {
+  
+  //printf("\n\nNew chunk (%zu bytes)\n", bytes);
+  //printf("%s", buffer);
+  size_t realsize = size * nmemb;
+
+  struct memory *mem = (struct memory *) userp;
+
+  char *ptr = realloc(mem->memory, mem->size + realsize + 1);
+
+  if (ptr == NULL) {
+    return 0;
+  }
+
+  mem->memory = ptr;
+  memcpy(&mem->memory[mem->size], contents, realsize);
+  mem-> size += realsize;
+  mem->memory[mem->size] = 0;
+
+  return realsize;
+}
+
 char* fetchAPI(CURL *curl, char* zip, int option) {
   /*
     To use the openweather api, we have to convert our zip code into a lat long coordinate system.
@@ -111,18 +148,32 @@ char* fetchAPI(CURL *curl, char* zip, int option) {
     results[0].geometry.location.lat
     results[0].geometry.location.lng
   */
+
+  struct memory chunk;
+
+  chunk.memory = NULL;
+  chunk.size = 0;
+
   curl_easy_setopt(curl, CURLOPT_URL, googleURL);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
+  //printf("chunk: %s\n", chunk);
 
   CURLcode result = curl_easy_perform(curl);
   if (result != CURLE_OK) {
     fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result));
 
+  } else {
+    printf("bytes: %d\n", (int) chunk.size);
+    printf("data: %s", chunk.memory);
   }
 
+  //now that we have our chunk, we should convert it into useable data (latitude and longitude)
 
 
 
 
+  curl_easy_cleanup(curl);
 
 
 
@@ -151,12 +202,13 @@ char* fetchAPI(CURL *curl, char* zip, int option) {
 
   }
   */
-  curl_easy_cleanup(curl);
+
 }
 
 void drawMenu(char* zip, int option) {
 
     char menu[1807];
+    menu[0] = '\0';
     char* menu0 = 
     "#####################################################################################\n"
     "#                                                                                   #\n"
