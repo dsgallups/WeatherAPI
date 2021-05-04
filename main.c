@@ -20,6 +20,7 @@
 
 #define OFFSET 48 //for numbers
 void drawMenu();
+char* fetchAPI();
 
 /*
   the problem is that inputs are typically buffered, so it's very hard to get a keypres
@@ -34,20 +35,13 @@ int main() {
     return 0;
   }
 
-  curl_easy_cleanup(curl);
-
-  //set options
-  char* API_KEY = "45223ea54f34186ce02503668baf1306";
-  char* url = "api.openweathermap.org/data/2.5/forecast/daily?zip=";
-
-  //curl_easy_setopt(curl, CURLOPT_URL, "");
 
   //perform action
 
 
   //store the user's action
   int option = 0;
-  char* zip = "_____";
+  char zip[] =  "_____";
   while (running) {
     printf("test\n");
     drawMenu(zip, option);
@@ -64,7 +58,7 @@ int main() {
       "Numbers - Inserts the numbers into zipcode. To overwrite the zipcode, type in new numbers.\n"
       "w - Moves the cursor up.\n"
       "s - Moves the cursor down.\n"
-      "enter (no other input) - Executes the displayed configurations.\n"
+      "go - Executes the displayed configurations.\n"
       "exit - exits the program.\n";
       printf("%s", help);
       goto COM;
@@ -78,11 +72,87 @@ int main() {
     if (strcmp(command, "s") == 0) {
       option = 1;
     }
-    printf("%s", command);
+    if (strspn(command, "0123456789") == 5 && strlen(command) == 5) {
+      printf("in here\n");
+      
+      //this is sticky. I just want zip to take in command's value
+      //zip = command;
+      printf("%lu\n", sizeof(zip));
+      strncpy(zip, command, 5);
+      printf("%s", zip);
+
+    }
+
+    if (strstr(command, "go")) {
+      char* result = fetchAPI(curl, zip, option);
+    }
+
+    //if user hits enter with no input
+    if (strlen(command) == 0)
+    printf("%s\n%lu\n", command, strlen(command));
   }
   return 0;
 }
 
+char* fetchAPI(CURL *curl, char* zip, int option) {
+  /*
+    To use the openweather api, we have to convert our zip code into a lat long coordinate system.
+    We can do this via google's api
+  */
+  char* googleAPIKey = "&key=AIzaSyCOlNBG5t9nUor7R4UjrFvUcwnd9EzNIFI";
+  char googleURL[1024];
+  strcpy(googleURL, "https://maps.googleapis.com/maps/api/geocode/json?address=");
+  strcat(googleURL, zip);
+  strcat(googleURL, googleAPIKey);
+  printf("submitted url:%s\n", googleURL);
+
+  /*
+    grab the lat and long at:
+    results[0].geometry.location.lat
+    results[0].geometry.location.lng
+  */
+  curl_easy_setopt(curl, CURLOPT_URL, googleURL);
+
+  CURLcode result = curl_easy_perform(curl);
+  if (result != CURLE_OK) {
+    fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result));
+
+  }
+
+
+
+
+
+
+
+
+  //set options
+  /*
+  char* API_KEY = "&appid=a3ecd4b0cfeef827dfd555ab2a365fd1";
+
+  char url[512];
+  if (option == 0) {
+    strcpy(url, "https://api.openweathermap.org/data/2.5/onecall?zip=");
+    strcat(url, zip);
+    strcat(url, API_KEY);
+    strcat(url, "&cnt=7&units=imperial");
+  } else if (option == 1) {
+    strcpy(url, "pro.openweathermap.org/data/2.5/forecast/hourly?zip=");
+    strcat(url, zip);
+    strcat(url, API_KEY);
+    strcat(url, "&cnt=7&units=imperial");
+  }
+
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+
+  CURLcode result = curl_easy_perform(curl);
+  if (result != CURLE_OK) {
+    fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result));
+
+  }
+  */
+  curl_easy_cleanup(curl);
+}
 
 void drawMenu(char* zip, int option) {
 
