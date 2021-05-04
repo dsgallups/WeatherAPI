@@ -13,10 +13,10 @@
   https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=msvc-160
   
   Then, follow the instructions under "Building using vcpkg" at
-  https://curl.se/docs/install.html
-
   Then, reload vscode
 
+  If that doesn't work,
+  sudo apt-get install libcurl4-openssl-dev
 
   As for json-c, json-c is found here:
   https://github.com/json-c/json-c
@@ -48,7 +48,8 @@ size_t writeCallback();
 */
 int main() {
   int running = 1;
-
+    
+      
   //store the user's action
   int option = 0;
   char zip[] =  "_____";
@@ -104,13 +105,10 @@ int main() {
 }
 
 char* spaceMaker(int length) {
-  //I've really tried everything to get this to work. This is now just a hack because I don't wanna go back
-  char *mySpace = "                                                                      ";
-  char *space = malloc(sizeof (char) * length+5);
-  space[0] = '\0';
-  strncpy(space, mySpace, length);
-  strcat(space, "\0");
-  return space;
+  char *str = malloc(length + 1);
+  memset(str, ' ', length);
+  str[length] = 0;
+  return str;
 }
 
 void drawData(char* data, int option) {
@@ -180,27 +178,18 @@ void drawData(char* data, int option) {
       const char* wVal = json_object_get_string(weatherval);
       char line[200];
       strcpy(line, "# ");
+      char dayval[10];
       if (i == 0) {
-        strcat(line, "Today");
-        strcat(line, spaceMaker(10));
+        strcpy(dayval, "Today");
       } else if (i == 1) {
-        strcat(line, "Tomorrow");
-        strcat(line, spaceMaker(7));
+        strcpy(dayval, "Tomorrow");
       } else {
-        strcat(line, "Day ");
-        char buffer[3];
+        strcpy(dayval, "Day ");
+        char buffer[2];
         sprintf(buffer, "%d", (i+1));
-        strcat(line, buffer);
-        strcat(line, spaceMaker(10));
+        strcat(dayval, buffer);
       }
-      strcat(line, "| Low: ");
-      strcat(line, minVal);
-      strcat(line, "f | High: ");
-      strcat(line, maxVal);
-      strcat(line, "f | Weather: ");
-      strcat(line, wVal);
-      strcat(line, spaceMaker(27 - strlen(wVal)));
-      strcat(line, "#\n");
+      sprintf(line, "# %s %s| High: %.2sf | Low %.2sf | Weather: %s %s #\n", dayval, spaceMaker(12-strlen(dayval)), maxVal, minVal, wVal, spaceMaker(34-strlen(wVal)));
       strcat(render, line);
 
       
@@ -274,7 +263,7 @@ void drawData(char* data, int option) {
       strcat(render, "#-----------------------------------------------------------------------------------#\n");
       char line[90];
 
-      sprintf(line, "# Hour %d %s | Temperature: %sf | Weather %s %s #\n", i, spaceMaker(7), json_object_get_string(temp), json_object_get_string(weatherval), spaceMaker(33 - json_object_get_string_len(weatherval)));
+      sprintf(line, "# Hour %.2d %s | Temperature: %.2sf | Weather %s %s #\n", i, spaceMaker(7), json_object_get_string(temp), json_object_get_string(weatherval), spaceMaker(35 - json_object_get_string_len(weatherval)));
 
       strcat(render, line);
     }
@@ -323,8 +312,7 @@ void drawData(char* data, int option) {
 }
 size_t writeCallback(char *contents, size_t size, size_t nmemb, void *userp) {
   
-  //printf("\n\nNew chunk (%zu bytes)\n", bytes);
-  //printf("%s", buffer);
+
   size_t realsize = size * nmemb;
 
   struct memory *mem = (struct memory *) userp;
@@ -514,15 +502,4 @@ void drawMenu(char* zip, int option) {
     strcat(menu, options);
     printf("%s", menu);
 
-    /*
-    while (1) {
-      //char e = getchar();
-      printf("%d\n", getchar());
-    }*/
-
-    //s = 115
-    //w = 119
-    //0 = 48
-    //4 = 52...
-    //9 = 
 }
