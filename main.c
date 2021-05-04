@@ -48,16 +48,11 @@ size_t writeCallback();
 */
 int main() {
   int running = 1;
-  time_t now;
-  printf("Time: %ld", time(&now));
-  //perform action
-
 
   //store the user's action
   int option = 0;
   char zip[] =  "_____";
   while (running) {
-    printf("top of running while\n");
     drawMenu(zip, option);
 
     printf("For help, type \"help\".\n> ");
@@ -87,13 +82,9 @@ int main() {
       option = 1;
     }
     if (strspn(command, "0123456789") == 5 && strlen(command) == 5) {
-      printf("in here\n");
       
-      //this is sticky. I just want zip to take in command's value
-      //zip = command;
-      printf("%lu\n", sizeof(zip));
+      //give zip the value of command
       strncpy(zip, command, 5);
-      printf("%s", zip);
 
     }
 
@@ -101,6 +92,8 @@ int main() {
       char* result = fetchAPI(zip, option);
 
       drawData(result, option);
+      char dump[60];
+      scanf("%s", dump);
     }
 
     //if user hits enter with no input
@@ -171,7 +164,6 @@ void drawData(char* data, int option) {
     struct json_object *weatherval;
 
     char render[2000];
-    printf("render top\n");
     strcpy(render, "#####################################################################################\n");
     for (int i = 0; i < 8; i++) {
       strcat(render, "#-----------------------------------------------------------------------------------#\n");
@@ -225,7 +217,6 @@ void drawData(char* data, int option) {
     strcat(render, bottom);
 
     printf("%s", render);
-    printf("render bottom\n");
   } else if (option == 1) {
     /*
     "#####################################################################################\n"
@@ -368,7 +359,6 @@ char* fetchAPI(char* zip, int option) {
   strcpy(googleURL, "https://maps.googleapis.com/maps/api/geocode/json?address=");
   strcat(googleURL, zip);
   strcat(googleURL, googleAPIKey);
-  printf("submitted url:%s\n", googleURL);
 
 
   struct memory chunk;
@@ -385,9 +375,6 @@ char* fetchAPI(char* zip, int option) {
   if (result != CURLE_OK) {
     fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result));
 
-  } else {
-    printf("bytes: %d\n", (int) chunk.size);
-    printf("data: %s", chunk.memory);
   }
 
   curl_easy_cleanup(curl);
@@ -412,8 +399,6 @@ char* fetchAPI(char* zip, int option) {
   json_object_object_get_ex(location, "lat", &lat);
   json_object_object_get_ex(location, "lng", &lng);
 
-  printf("lat: %s\nlng: %s\n", json_object_to_json_string(lat), json_object_to_json_string(lng));
-
 
   char url[512];
   strcpy(url, "https://api.openweathermap.org/data/2.5/onecall?appid=a3ecd4b0cfeef827dfd555ab2a365fd1&lat=");
@@ -426,8 +411,6 @@ char* fetchAPI(char* zip, int option) {
   } else if (option == 1) {
     strcat(url, "&exclude=minutely,daily,alerts");
   }
-
-  printf("THE URL OF GODS: %s\n", url);
 
   CURL *curl2 = curl_easy_init();
 
