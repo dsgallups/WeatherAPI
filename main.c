@@ -48,7 +48,8 @@ size_t writeCallback();
 */
 int main() {
   int running = 1;
-
+  time_t now;
+  printf("Time: %ld", time(&now));
   //perform action
 
 
@@ -110,6 +111,7 @@ int main() {
 }
 
 char* spaceMaker(int length) {
+  //I've really tried everything to get this to work. This is now just a hack because I don't wanna go back
   char *mySpace = "                                                                      ";
   char *space = malloc(sizeof (char) * length+5);
   space[0] = '\0';
@@ -214,6 +216,7 @@ void drawData(char* data, int option) {
     }
 
     char* bottom = 
+    "#-----------------------------------------------------------------------------------#\n"
     "#                                                                                   #\n"
     "#                                                                                   #\n"
     "#                              Type 'exit' to exit                                  #\n"
@@ -224,7 +227,106 @@ void drawData(char* data, int option) {
     printf("%s", render);
     printf("render bottom\n");
   } else if (option == 1) {
+    /*
+    "#####################################################################################\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# Now, 12pm     | High: 75f  | Low: 63f  | Weather: Thunderstorms                   #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# 3pm           | High: 79f  | Low: 48f  | Weather: Windy                           #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# 6pm           | High: 69f  | Low: 39f  | Weather: Cloudy                          #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# 9pm           | High: 68f  | Low: 45f  | Weather: Cloudy                          #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# Tomorrow, 12am| High: 72f  | Low: 50f  | Weather: Clear                           #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# 3am           | High: 75f  | Low: 61f  | Weather: Clear                           #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# Additional details:                                                               #\n"
+    "#  Sunrise: 7:14am                                                                  #\n"
+    "#  Sunset: 7:51pm                                                                   #\n"
+    "#  Humidity: 97                                                                     #\n"
+    "#  Visibility: 10000                                                                #\n"
+    "#                                       Exit*                                       #\n"
+    "#####################################################################################\n";
+    */
+    struct json_object *parsed_json;
+    parsed_json = json_tokener_parse(data);
+    struct json_object *current;
+    struct json_object *sunrise;
+    struct json_object *sunset;
+    struct json_object *humidity;
+    struct json_object *visibility;
+    json_object_object_get_ex(parsed_json, "current", &current);
+    json_object_object_get_ex(current, "sunrise", &sunrise);
+    json_object_object_get_ex(current, "sunset", &sunset);
+    json_object_object_get_ex(current, "humidity", &humidity);
+    json_object_object_get_ex(current, "visibility", &visibility);
 
+    char render[2000];
+    strcpy(render, "#####################################################################################\n");
+    
+    struct json_object *hours;
+    struct json_object *hour;
+    struct json_object *temp;
+    struct json_object *weatherarr;
+    struct json_object *weatheri;
+    struct json_object *weatherval;
+    for (int i = 0; i <= 15; i += 3) {
+      json_object_object_get_ex(parsed_json, "hourly", &hours);
+      hour = json_object_array_get_idx(hours, i);
+      json_object_object_get_ex(hour, "temp", &temp);
+      json_object_object_get_ex(hour, "weather", &weatherarr);
+      weatheri = json_object_array_get_idx(weatherarr, 0);
+      json_object_object_get_ex(weatheri, "main", &weatherval);
+
+      strcat(render, "#-----------------------------------------------------------------------------------#\n");
+      char line[90];
+
+      sprintf(line, "# Hour %d %s | Temperature: %sf | Weather %s %s #\n", i, spaceMaker(7), json_object_get_string(temp), json_object_get_string(weatherval), spaceMaker(33 - json_object_get_string_len(weatherval)));
+
+      strcat(render, line);
+    }
+    
+    //Unix time to readable time
+    char sunrisebuf[80];
+    time_t sunriset;
+    sunriset = (time_t) json_object_get_int(sunrise);
+    struct tm ts;
+    ts = *localtime(&sunriset);
+    strftime(sunrisebuf, sizeof(sunrisebuf), "%H:%M", &ts);
+
+
+    char sunsetbuf[80];
+    time_t sunsett;
+    sunsett = (time_t) json_object_get_int(sunset);
+    struct tm ts2;
+    ts2 = *localtime(&sunsett);
+    strftime(sunsetbuf, sizeof(sunsetbuf), "%H:%M", &ts2);
+
+    strcat(render, "#-----------------------------------------------------------------------------------#\n");
+    strcat(render, "# Additional details:                                                               #\n");
+    strcat(render, "#  Sunrise: ");
+    strcat(render, sunrisebuf);
+    strcat(render, spaceMaker(67));
+    strcat(render, "#\n");
+    strcat(render, "#  Sunset: ");
+    strcat(render, sunsetbuf);
+     strcat(render, spaceMaker(68));
+    strcat(render, "#\n");
+    strcat(render, "#  Humidity: ");
+    strcat(render, json_object_get_string(humidity));
+     strcat(render, spaceMaker(69));
+    strcat(render, "#\n");
+    strcat(render, "#  Visibility: ");
+    strcat(render, json_object_get_string(visibility));
+     strcat(render, spaceMaker(64));
+    strcat(render, "#\n");
+    char *bottom =
+    "#                               Type 'exit' to exit                                 #\n"
+    "#####################################################################################\n";
+    strcat(render, bottom);
+    printf("%s",render);
   }
 
 }
