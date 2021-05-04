@@ -5,6 +5,10 @@
 #include <string.h>
 
 /*
+  Written and compiled on Ubuntu 16.04 LTS
+
+
+
   To add curl to visual studio, install vcpkg here: 
   https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=msvc-160
   
@@ -34,6 +38,7 @@ struct memory {
 
 #define OFFSET 48 //for numbers
 void drawMenu();
+void drawData();
 char* fetchAPI();
 size_t writeCallback();
 /*
@@ -42,13 +47,6 @@ size_t writeCallback();
 */
 int main() {
   int running = 1;
-  CURL *curl = curl_easy_init();
-
-  if (!curl) {
-    fprintf(stderr, "init failed\n");
-    return 0;
-  }
-
 
   //perform action
 
@@ -98,7 +96,9 @@ int main() {
     }
 
     if (strstr(command, "go")) {
-      char* result = fetchAPI(curl, zip, option);
+      char* result = fetchAPI(zip, option);
+
+      drawData(result, option);
     }
 
     //if user hits enter with no input
@@ -108,7 +108,9 @@ int main() {
   return 0;
 }
 
+void drawData(char* data, int option) {
 
+}
 size_t writeCallback(char *contents, size_t size, size_t nmemb, void *userp) {
   
   //printf("\n\nNew chunk (%zu bytes)\n", bytes);
@@ -131,11 +133,17 @@ size_t writeCallback(char *contents, size_t size, size_t nmemb, void *userp) {
   return realsize;
 }
 
-char* fetchAPI(CURL *curl, char* zip, int option) {
+char* fetchAPI(char* zip, int option) {
   /*
     To use the openweather api, we have to convert our zip code into a lat long coordinate system.
     We can do this via google's api
   */
+  CURL *curl = curl_easy_init();
+
+  if (!curl) {
+    fprintf(stderr, "init failed\n");
+    return 0;
+  }
   char* googleAPIKey = "&key=AIzaSyCOlNBG5t9nUor7R4UjrFvUcwnd9EzNIFI";
   char googleURL[1024];
   strcpy(googleURL, "https://maps.googleapis.com/maps/api/geocode/json?address=");
@@ -143,11 +151,6 @@ char* fetchAPI(CURL *curl, char* zip, int option) {
   strcat(googleURL, googleAPIKey);
   printf("submitted url:%s\n", googleURL);
 
-  /*
-    grab the lat and long at:
-    results[0].geometry.location.lat
-    results[0].geometry.location.lng
-  */
 
   struct memory chunk;
 
@@ -168,40 +171,81 @@ char* fetchAPI(CURL *curl, char* zip, int option) {
     printf("data: %s", chunk.memory);
   }
 
-  //now that we have our chunk, we should convert it into useable data (latitude and longitude)
-
-
-
-
   curl_easy_cleanup(curl);
-
-
-
-  //set options
+  //now that we have our chunk, we should convert it into useable data (latitude and longitude)
   /*
-  char* API_KEY = "&appid=a3ecd4b0cfeef827dfd555ab2a365fd1";
+    grab the lat and long at:
+    results[0].geometry.location.lat
+    results[0].geometry.location.lng
+  */
+  struct json_object *parsed_json;
+  parsed_json = json_tokener_parse(chunk.memory);
+  struct json_object *results;
+  json_object_object_get_ex(parsed_json, "results", &results);
+  struct json_object *resulti;
+  resulti = json_object_array_get_idx(results, 0);
+  struct json_object *geometry;
+  json_object_object_get_ex(resulti, "geometry", &geometry);
+  struct json_object *location;
+  json_object_object_get_ex(geometry, "location", &location);
+  struct json_object *lat;
+  struct json_object *lng;
+  json_object_object_get_ex(location, "lat", &lat);
+  json_object_object_get_ex(location, "lng", &lng);
+
+  printf("lat: %s\nlng: %s\n", json_object_to_json_string(lat), json_object_to_json_string(lng));
+
 
   char url[512];
+  strcpy(url, "https://api.openweathermap.org/data/2.5/onecall?appid=a3ecd4b0cfeef827dfd555ab2a365fd1&lat=");
+  strcat(url, json_object_to_json_string(lat));
+  strcat(url, "&lon=");
+  strcat(url, json_object_to_json_string(lng));
+  strcat(url, "&units=imperial");
   if (option == 0) {
-    strcpy(url, "https://api.openweathermap.org/data/2.5/onecall?zip=");
-    strcat(url, zip);
-    strcat(url, API_KEY);
-    strcat(url, "&cnt=7&units=imperial");
+    strcat(url, "&exclude=current,minutely,hourly,alerts");
   } else if (option == 1) {
-    strcpy(url, "pro.openweathermap.org/data/2.5/forecast/hourly?zip=");
-    strcat(url, zip);
-    strcat(url, API_KEY);
-    strcat(url, "&cnt=7&units=imperial");
+    strcat(url, "&exclude=minutely,daily,alerts");
   }
 
-  curl_easy_setopt(curl, CURLOPT_URL, url);
+  printf("THE URL OF GODS: %s\n", url);
 
-  CURLcode result = curl_easy_perform(curl);
-  if (result != CURLE_OK) {
-    fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result));
+  CURL *curl2 = curl_easy_init();
 
+  if (!curl2) {
+    fprintf(stderr, "init failed\n");
+    return 0;
   }
+
+
+  struct memory chunk2;
+
+  chunk2.memory = NULL;
+  chunk2.size = 0;
+  curl_easy_setopt(curl2, CURLOPT_URL, url);
+  curl_easy_setopt(curl2, CURLOPT_WRITEFUNCTION, writeCallback);
+  curl_easy_setopt(curl2, CURLOPT_WRITEDATA, &chunk2);
+  //printf("chunk: %s\n", chunk);
+
+  CURLcode result2 = curl_easy_perform(curl2);
+  if (result2 != CURLE_OK) {
+    fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result2));
+
+  } else {
+    printf("bytes: %d\n", (int) chunk2.size);
+    printf("data: %s", chunk2.memory);
+  }
+
+  curl_easy_cleanup(curl2);
+  return chunk2.memory;
+  free(chunk.memory);
+  free(chunk2.memory);
+  //set options
+  /*
+
   */
+
+
 
 }
 
