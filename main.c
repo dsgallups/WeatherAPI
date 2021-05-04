@@ -40,6 +40,7 @@ struct memory {
 void drawMenu();
 void drawData();
 char* fetchAPI();
+char* spaceMaker();
 size_t writeCallback();
 /*
   the problem is that inputs are typically buffered, so it's very hard to get a keypres
@@ -108,7 +109,123 @@ int main() {
   return 0;
 }
 
+char* spaceMaker(int length) {
+  char *mySpace = "                                                                      ";
+  char *space = malloc(sizeof (char) * length+5);
+  space[0] = '\0';
+  strncpy(space, mySpace, length);
+  strcat(space, "\0");
+  return space;
+}
+
 void drawData(char* data, int option) {
+  if (option == 0) {
+    //Template
+
+    /*
+    frames[8] =
+    "#####################################################################################\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# Today, May 2    | High: 75f  | Low: 63f  | Weather: Thunderstorms                 #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 3           | High: 79f  | Low: 48f  | Weather: Windy                         #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 4           | High: 69f  | Low: 39f  | Weather: Cloudy                        #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 5           | High: 68f  | Low: 45f  | Weather: Cloudy                        #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 6           | High: 72f  | Low: 50f  | Weather: Clear                         #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 7           | High: 75f  | Low: 61f  | Weather: Clear                         #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "# May 8           | High: 73f  | Low: 64f  | Weather: Windy                         #\n"
+    "#-----------------------------------------------------------------------------------#\n"
+    "#                                                                                   #\n"
+    "#                                                                                   #\n"
+    "#                                       Exit*                                       #\n"
+    "#                                                                                   #\n"
+    "#####################################################################################\n";
+
+    "# Today, May 2    | High: 75f  | Low: 63f  | Weather: Thunderstorms                 #\n" len 86
+       Today, May 2    len 17
+        High: 75f  len 12
+         Low: 63f  len 11
+       Weather: Thunderstorms                 len 40   
+    */
+    struct json_object *parsed_json;
+    parsed_json = json_tokener_parse(data);
+    struct json_object *days;
+    json_object_object_get_ex(parsed_json, "daily", &days);
+    //We just need to get the high and lows and weather, located at
+    //daily[i].temp.min
+    //daily[i].temp.max
+    //daily[i].weather[0].main
+    struct json_object *day;
+    struct json_object *temp;
+    struct json_object *min;
+    struct json_object *max;
+    struct json_object *weather;
+    struct json_object *weatheri;
+    struct json_object *weatherval;
+
+    char render[2000];
+    printf("render top\n");
+    strcpy(render, "#####################################################################################\n");
+    for (int i = 0; i < 8; i++) {
+      strcat(render, "#-----------------------------------------------------------------------------------#\n");
+      day = json_object_array_get_idx(days, i);
+      json_object_object_get_ex(day, "temp", &temp);
+      json_object_object_get_ex(temp, "min", &min);
+      json_object_object_get_ex(temp, "max", &max);
+
+      json_object_object_get_ex(day, "weather", &weather);
+      weatheri = json_object_array_get_idx(weather, 0);
+      json_object_object_get_ex(weatheri, "main", &weatherval);
+      const char* minVal = json_object_get_string(min);
+      const char* maxVal = json_object_get_string(max);
+      const char* wVal = json_object_get_string(weatherval);
+      char line[200];
+      strcpy(line, "# ");
+      if (i == 0) {
+        strcat(line, "Today");
+        strcat(line, spaceMaker(10));
+      } else if (i == 1) {
+        strcat(line, "Tomorrow");
+        strcat(line, spaceMaker(7));
+      } else {
+        strcat(line, "Day ");
+        char buffer[3];
+        sprintf(buffer, "%d", (i+1));
+        strcat(line, buffer);
+        strcat(line, spaceMaker(10));
+      }
+      strcat(line, "| Low: ");
+      strcat(line, minVal);
+      strcat(line, "f | High: ");
+      strcat(line, maxVal);
+      strcat(line, "f | Weather: ");
+      strcat(line, wVal);
+      strcat(line, spaceMaker(27 - strlen(wVal)));
+      strcat(line, "#\n");
+      strcat(render, line);
+
+      
+
+    }
+
+    char* bottom = 
+    "#                                                                                   #\n"
+    "#                                                                                   #\n"
+    "#                              Type 'exit' to exit                                  #\n"
+    "#                                                                                   #\n"
+    "#####################################################################################\n";
+    strcat(render, bottom);
+
+    printf("%s", render);
+    printf("render bottom\n");
+  } else if (option == 1) {
+
+  }
 
 }
 size_t writeCallback(char *contents, size_t size, size_t nmemb, void *userp) {
@@ -232,8 +349,8 @@ char* fetchAPI(char* zip, int option) {
     fprintf(stderr, "download problem: %s\n", curl_easy_strerror(result2));
 
   } else {
-    printf("bytes: %d\n", (int) chunk2.size);
-    printf("data: %s", chunk2.memory);
+    //printf("bytes: %d\n", (int) chunk2.size);
+    //printf("data: %s", chunk2.memory);
   }
 
   curl_easy_cleanup(curl2);
